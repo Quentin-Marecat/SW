@@ -2,7 +2,7 @@ from warnings import WarningMessage
 import numpy as np
 import scipy
 from time import perf_counter as pc
-from sw.tools.measurements import count_ones_bitstring, evaluate_statevector, sampled_expectation_value
+from sw.tools.measurements import count_ones_bitstring, evaluate_statevector, sampled_expectation_value, evaluate
 from sw.tools.tools import optimized_features_RVB_inspired_ansatz_Heisenberg_model, compute_statevector
 from sw.tools.circuits import RVB_inspired_ansatz, fermionic_version_of_spin_wave_function_site_ordered, CU_trotterized
 from sw.tools.qc_operators import Hubbard_1D_operator, SW_operator, s2_operator
@@ -44,10 +44,10 @@ class SchriefferWolffQC():
             self.noisy = True
             self.nshots = 1024 if 'nshots' not in noisy.keys() else noisy['nshots']
             self.n_eval = 1 if 'n_eval' not in noisy.keys() else noisy['n_eval']
-            self.var = None if 'var' not in noisy.keys() else noisy['var']
+            self.var = None #if 'var' not in noisy.keys() else noisy['var']
             self.printv(f'     nshots : {self.nshots}')
             self.printv(f'     n_eval : {self.n_eval}')
-            self.printv(f'     Variance : {self.var}')
+#            self.printv(f'     Variance : {self.var}')
             if self.var is not None and self.n_eval < 100:
                 print(f'     Please increase the number of max evaluation if you want correct variance')
 
@@ -90,9 +90,10 @@ class SchriefferWolffQC():
 #        simulator = BasicAer.get_backend('statevector_simulator')
 #        self.result = execute(self.initial_circuit, simulator).result()
 
-    def kernel(self,solve_fermi_hubbard=True,order=1,theta=1.,S2_subspace=False):
+    def kernel(self,solve_fermi_hubbard=True,order=1,theta=1.,S2_subspace=False,opt_method="SPSA"):
         t0 = pc()
         self.theta=theta
+        self.order=order
         if order>1:
             NotImplementedError(f'SW relations beyond 2nd order is not implemented')
         self.printv(f'Set Fermi-Hubbard Hamiltonian')
@@ -124,7 +125,7 @@ class SchriefferWolffQC():
             self.theta = theta
         elif theta=='variationnal' or theta=='opt':
             self.printv(f'Classical optimization')
-            self.variationnal(min_energy=True,bounds=True)
+            self.variationnal(opt_method=opt_method,bounds=True)
         else:
             raise ValueError(f'Set correct value of theta, not {theta}')
 
@@ -191,14 +192,15 @@ class SchriefferWolffQC():
 #        self.printv(fermionic_Heisenberg_GS_RVB_ansatz_site_ordered_qc.decompose())
         self.initial_circuit = fermionic_Heisenberg_GS_RVB_ansatz_site_ordered_qc
 
-    def variationnal(self,opt_method='SPSA',bounds=True): 
+    def variationnal(self,opt_method='SPSA',bounds=True):
         if opt_method != "SPSA": 
-            self.result = scipy.optimize.minimize(evaluate_statevector,
+            self.result = scipy.optimize.minimize(evaluate_statevector if not self.noisy else evaluate ,
                                                         x0=[(self.U/4)*np.arctan(4/self.U)],
                                                         args=(self.initial_circuit,
                                                             self.SW_PauliSum,
                                                             self.Hubbard_matrix if not self.noisy else self.Hubbard_PauliSum,
-                                                            self.backend),
+                                                            self.backend,
+                                                            None if not self.noisy else self.nshots),
                                                         method=opt_method,
                                                         bounds=scipy.optimize.Bounds(np.full(self.order,0),np.full(self.order,1.)) if bounds else None ,
                                                         options={'ftol':1e-14,'gtol': 1e-09})
@@ -207,11 +209,12 @@ class SchriefferWolffQC():
         else:
             #spsa = SPSA(maxiter=500,blocking=True,allowed_increase=0.1,last_avg=25,resamplings=2)
             spsa = SPSA(maxiter=1000,last_avg=25)
-            cost_function = SPSA.wrap_function(evaluate_statevector,
+            cost_function = SPSA.wrap_function(evaluate_statevector if not self.noisy else evaluate,
                                                 (self.initial_circuit,
                                                 self.SW_PauliSum,
                                                 self.Hubbard_matrix if not self.noisy else self.Hubbard_PauliSum,
-                                                self.backend))
+                                                self.backend,
+                                                None if not self.noisy else self.nshots))
             self.result = spsa.minimize(cost_function, x0=[(self.U/4)*np.arctan(4/self.U)])
             self.theta = self.result.x[0]
             self.energy = self.result.fun # if last_avg is not 1, it returns the callable function with the last_avg param_values as input ! This seems generally good and better than taking the mean of the last_avg function calls.

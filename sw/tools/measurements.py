@@ -25,7 +25,7 @@ def count_ones_bitstring(n):
    return one_count
 
 
-def evaluate_statevector(theta,initial_circuit,SW_PauliSum,Hmatrix,backend):
+def evaluate_statevector(theta,initial_circuit,SW_PauliSum,Hmatrix,backend,nshots=None):
     '''
     This function returns the energy.
     Careful about the endian-ordering... For the moment, I only managed to make it work always with Hmatrix = Hfermion.to_matrix().A, and reverse ordering.
