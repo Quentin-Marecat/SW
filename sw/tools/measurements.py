@@ -31,7 +31,7 @@ def evaluate_statevector(theta,initial_circuit,SW_PauliSum,Hmatrix,backend,nshot
     Careful about the endian-ordering... For the moment, I only managed to make it work always with Hmatrix = Hfermion.to_matrix().A, and reverse ordering.
     '''
 
-    if isinstance(theta,(float,int)):
+    if isinstance(theta,(float,int,list,np.ndarray)):
       SW_PauliSum_theta = SW_PauliSum.mul(theta[0])
       total_circuit = initial_circuit.compose(CU_trotterized(SW_PauliSum_theta))
     else:
@@ -71,7 +71,7 @@ def evaluate(theta,initial_circuit,SW_PauliSum,observable_PauliSum,backend,nshot
     '''
     This function returns the expectation value of the observable.
     '''
-    if isinstance(theta,(float,int)):
+    if isinstance(theta,(float,int,list,np.ndarray)):
       SW_PauliSum_theta = SW_PauliSum.mul(theta[0])
       total_circuit = initial_circuit.compose(CU_trotterized(SW_PauliSum_theta))
     else:

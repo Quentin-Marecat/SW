@@ -3,7 +3,7 @@ from sw.solver.swqc import SchriefferWolffQC
 from sw.tools.tools import fidelity
 
 # Fermi-Hubbard model parameters
-Lx = 8        # Horizontal dimension of lattice
+Lx = 4        # Horizontal dimension of lattice
 Ly = 1        # Vertical dimension of lattice (Ly = 1 for chains, Ly = 2 for ladders)
 nb_sites  = Lx * Ly  # Total number of lattice sites
 t_matrix = np.diag(np.full(nb_sites-1,-1.),k=1) + np.diag(np.full(nb_sites-1,-1.),k=-1)
