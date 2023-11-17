@@ -1,0 +1,106 @@
+[project]
+name = "SW"
+description = "Schrieffer-Wolff transformation for strongly correlated systems"
+keywords = [
+    "Schrieffer",
+    "quantum", "chemistry",
+    "Wolff", "science",
+    "electronic", "structure",
+    "correlated", "system",
+    "unitary", "transformation",
+    "quantum", "computer", "algorithm",
+    "VQE"
+]
+authors = [
+    {name="Q. Marécat", email="quentin.marecat@gmail.com"},
+    {name="B. Senjean", email="bruno.senjean@umontpellier.fr"},
+]
+license = {file = "LICENSE"}
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "License :: OSI Approved :: Apache Software License",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Developers",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: POSIX :: Linux",
+]
+dependencies = [
+    "numpy>=1.19.0",
+    "scipy>=1.1.0",
+    "quantnbody",
+    "qiskit>=0.45.0",
+    "qiskit_nature==0.4.4",
+    "qiskit_algorithms>=0.2.1",
+    "qiskit_aer>=0.13.0"
+]
+dynamic = ["version"]
+
+[build-system]
+requires = ["setuptools>=61.0.0"]
+build-backend = "setuptools.build_meta"
+
+[tools.setuptools]
+license-files = ["LICENSE"]
+
+[tools.setuptools.dynamic]
+version = {attr = "sw.__version__"}
+
+[project.optional-dependencies]
+
+[tool.coverage.run]
+branch = true
+source = ["dac"]
+omit = [
+    "*/tests/*",
+    "*/tools/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise RuntimeError",
+    "raise NotImplementedError",
+    "raise AssertionError",
+    "raise ValueError",
+    "raise AbstractMethodError",
+    "except ImportError",
+    "pass",
+    "if __name__ == .__main__.:",
+    "def __repr__",
+    "def __str__",
+    "log.error",
+    "log.critical",
+]
+
+[tool.pytest.ini_options]
+addopts = "--import-mode=importlib -m 'not veryslow'"
+testpaths = ["sw/tests"]
+markers = [
+    "fast",
+    "slow",
+    "veryslow",
+]
+
+[tool.black]
+line-length = 120
+target-version = [
+    "py38",
+    "py39",
+    "py310",
+    "py311",
+]
+include="\\.py"
+extend-exclude = """
+/(
+    __pycache__*
+/)
+"""

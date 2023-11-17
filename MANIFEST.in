@@ -1,0 +1,4 @@
+include MANIFEST.in
+include README.md pyproject.toml setup.py CHANGELOG LICENSE
+
+global-exclude *.py[cod]
