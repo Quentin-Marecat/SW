@@ -36,6 +36,24 @@ def N_operator(n_qubits):
       N += FermionicOp(("N_{}".format(2*i+1),1),register_length=n_qubits)
 
     return N
+
+def Heisenberg_1D_operator(n_sites,t_matrix):
+    '''
+    1D Heisenberg operator in qiskit.   
+    '''
+    n_qubits = 2*n_sites
+    V_op = 0
+
+    for i in range(n_sites):
+      for j in range(n_sites):
+        s_moins_i = FermionicOp(("+_{} -_{}".format(2*i+1,2*i),1),register_length=n_qubits)
+        s_plus_i = FermionicOp(("+_{} -_{}".format(2*i,2*i+1),1),register_length=n_qubits)
+        s_moins_j = FermionicOp(("+_{} -_{}".format(2*j+1,2*j),1),register_length=n_qubits)
+        s_plus_j = FermionicOp(("+_{} -_{}".format(2*j,2*j+1),1),register_length=n_qubits)
+        sz_i = FermionicOp(("N_{}".format(2*i),0.5),register_length=n_qubits) - FermionicOp(("N_{}".format(2*i+1),0.5),register_length=n_qubits)
+        sz_j = FermionicOp(("N_{}".format(2*j),0.5),register_length=n_qubits) - FermionicOp(("N_{}".format(2*j+1),0.5),register_length=n_qubits)
+        V_op += t_matrix[i,j]* (.5*(s_plus_i@s_moins_j + s_moins_i@s_plus_j) + sz_i@sz_j)
+    return V_op
     
 def s2_operator(n_qubits):
     ''' 

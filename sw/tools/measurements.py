@@ -31,9 +31,11 @@ def evaluate_statevector(theta,initial_circuit,SW_PauliSum,Hmatrix,backend,nshot
     Careful about the endian-ordering... For the moment, I only managed to make it work always with Hmatrix = Hfermion.to_matrix().A, and reverse ordering.
     '''
 
-    SW_PauliSum_theta = SW_PauliSum.mul(theta[0])
-
-    total_circuit = initial_circuit.compose(CU_trotterized(SW_PauliSum_theta))
+    if isinstance(theta,(float,int)):
+      SW_PauliSum_theta = SW_PauliSum.mul(theta[0])
+      total_circuit = initial_circuit.compose(CU_trotterized(SW_PauliSum_theta))
+    else:
+      total_circuit = initial_circuit
     # Reverse the circuit which is sorted with a different endian.
     total_circuit = total_circuit.reverse_bits()
     total_circuit.save_statevector()
@@ -69,9 +71,11 @@ def evaluate(theta,initial_circuit,SW_PauliSum,observable_PauliSum,backend,nshot
     '''
     This function returns the expectation value of the observable.
     '''
-
-    SW_PauliSum_theta = SW_PauliSum.mul(theta[0])
-    total_circuit = initial_circuit.compose(CU_trotterized(SW_PauliSum_theta))
+    if isinstance(theta,(float,int)):
+      SW_PauliSum_theta = SW_PauliSum.mul(theta[0])
+      total_circuit = initial_circuit.compose(CU_trotterized(SW_PauliSum_theta))
+    else:
+      total_circuit = initial_circuit
     energy = sampled_expectation_value(total_circuit,observable_PauliSum,backend,nshots=nshots)
 
     return energy

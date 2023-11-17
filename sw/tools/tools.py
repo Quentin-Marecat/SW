@@ -11,9 +11,11 @@ def compute_statevector(theta,initial_circuit,SW_PauliSum,backend):
   Careful about the endian-ordering
   '''
 
-  SW_PauliSum_theta = SW_PauliSum.mul(theta[0])
-
-  total_circuit = initial_circuit.compose(CU_trotterized(SW_PauliSum_theta))
+  if isinstance(theta,(float,int)):
+    SW_PauliSum_theta = SW_PauliSum.mul(theta[0])
+    total_circuit = initial_circuit.compose(CU_trotterized(SW_PauliSum_theta))
+  else:
+    total_circuit = initial_circuit
   # Reverse the circuit which is sorted with a different endian.
   total_circuit = total_circuit.reverse_bits()
   total_circuit.save_statevector()
