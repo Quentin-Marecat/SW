@@ -31,7 +31,6 @@ class SchriefferWolffQC():
         self.verbose=verbose
         for i in range(self.nb_sites):
             self.U_tensor[i,i,i,i] = U
-        self.verbose = True
         if not Ly==None:
             self.Ly=Ly 
             self.Lx = self.nb_sites//self.Ly

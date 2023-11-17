@@ -27,7 +27,6 @@ class HeisenbergQC():
         self.J_matrix=J
         self.ek,Vk = np.linalg.eigh(self.J_matrix)
         self.verbose=verbose
-        self.verbose = True
         if not Ly==None:
             self.Ly=Ly 
             self.Lx = self.nb_sites//self.Ly

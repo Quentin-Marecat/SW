@@ -25,7 +25,7 @@ noisy={'nshots':2**10,'prob_1':1.e-4,'prob_2':1.e-3,'n_eval':50}
 
 
 print(f'Noisy simulation : ')
-SWQC = SchriefferWolffQC(nb_sites,nb_sites,t_matrix,U,trial_state = None,verbose=True,Ly=Ly,noisy=noisy,BC=BC,mode=mode)
+SWQC = SchriefferWolffQC(nb_sites,nb_sites,t_matrix,U,trial_state = None,verbose=False,Ly=Ly,noisy=noisy,BC=BC,mode=mode)
 SWQC.kernel(solve_fermi_hubbard=solve_fermi_hubbard,theta=theta,S2_subspace=S2_subspace)
 print("%"*50+'\n')
 print(f'time : {np.around(SWQC.time,4)} s')

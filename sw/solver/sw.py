@@ -18,7 +18,6 @@ class SchriefferWolff():
         self.U_tensor = np.zeros([nb_sites]*4)
         for i in range(self.nb_sites):
             self.U_tensor[i,i,i,i] = U
-        self.verbose = True
         self.printv('Define n-body basis')
         self.nbody_basis = qnb.fermionic.tools.build_nbody_basis( nb_sites, nb_elec )
         self.printv('Create ob operator')
