@@ -11,7 +11,7 @@ def compute_statevector(theta,initial_circuit,SW_PauliSum,backend):
   Careful about the endian-ordering
   '''
 
-  if isinstance(theta,(float,int)):
+  if isinstance(theta,(list,np.ndarray)):
     SW_PauliSum_theta = SW_PauliSum.mul(theta[0])
     total_circuit = initial_circuit.compose(CU_trotterized(SW_PauliSum_theta))
   else:
