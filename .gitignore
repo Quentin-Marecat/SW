@@ -163,6 +163,7 @@ dmypy.json
 *.rtx
 *.sty
 *.toc
+*~
 
 # PySCF output
 pyscf.out

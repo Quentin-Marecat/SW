@@ -1,8 +1,12 @@
 from warnings import WarningMessage
 import numpy as np
 import scipy
+from pyhub.core.basis import Basis
+from pyhub.tools.models import fermi_hubbard
+from pyhub.tools.operators import n, opesum
 from time import perf_counter as pc
 from sw.tools.measurements import count_ones_bitstring, evaluate_statevector, sampled_expectation_value, evaluate
+from itertools import product
 from sw.tools.tools import optimized_features_RVB_inspired_ansatz_Heisenberg_model, compute_statevector
 from sw.tools.circuits import RVB_inspired_ansatz, fermionic_version_of_spin_wave_function_site_ordered, CU_trotterized
 from sw.tools.qc_operators import Hubbard_1D_operator, SW_operator, s2_operator
@@ -19,18 +23,27 @@ import qiskit.providers.aer.noise as noise
 
 class SchriefferWolffQC():
 
-    def __init__(self,nb_sites,nb_elec:int,t_matrix:np.ndarray,U:float,trial_state = None,verbose=True,Ly=None,noisy=None,BC='OBC',mode=1):
+    def __init__(self,nb_sites,n_up:int,n_down:int,t_matrix:np.ndarray,U:float,trial_state = None,verbose=True,Ly=None,noisy=None,BC='OBC',mode=1):
         self.nb_sites=nb_sites
         if nb_sites > 10:
             raise ValueError(f'number of sites must be lower or equal as 10, not {self.nb_sites}')
-        self.nb_elec=nb_elec
+        self.n_up = n_up
+        self.n_down = n_down  
+        self.nb_elec=n_up+n_down
         self.t_matrix=t_matrix 
         self.ek,Vk = np.linalg.eigh(self.t_matrix)
-        self.U=U
-        self.U_tensor = np.zeros([nb_sites]*4)
         self.verbose=verbose
-        for i in range(self.nb_sites):
-            self.U_tensor[i,i,i,i] = U
+        self.U=U
+        self.verbose = verbose
+        if isinstance(U,(float,int)):
+            self.U = np.full(self.nb_sites,U,dtype=np.float64)
+        self.printv('Define n-body basis')
+        self.mbbasis = Basis(nb_sites,(n_up,n_down),order='site')
+#        self.mbbasis = Basis(nb_sites,(list(range(self.nb_sites+1)),list(range(self.nb_sites+1))))
+
+        # N = opesum([n((i,spin)) for i,spin in product(range(self.nb_sites),['up','down'])])
+        # N.set_basis(self.mbbasis)
+        # self.index = np.where(N==self.nb_sites)[0]
         if not Ly==None:
             self.Ly=Ly 
             self.Lx = self.nb_sites//self.Ly
@@ -89,7 +102,7 @@ class SchriefferWolffQC():
 #        simulator = BasicAer.get_backend('statevector_simulator')
 #        self.result = execute(self.initial_circuit, simulator).result()
 
-    def kernel(self,solve_fermi_hubbard=True,order=1,theta=1.,S2_subspace=False,opt_method="SPSA"):
+    def kernel(self,theta=1.,order=1,**kwargs_opt):
         t0 = pc()
         self.theta=theta
         self.order=order
@@ -101,35 +114,42 @@ class SchriefferWolffQC():
             if count_ones_bitstring(i) == self.L:
                 hspace += [i]
     #        hspace += [i]
+#        self.index = hspace
         self.printv(f'     Define Fermi-Hubbard operator')
-        Hubbard_operator = Hubbard_1D_operator(self.L,self.U,self.t_matrix)
+        Hubbard_operator_qiskit = Hubbard_1D_operator(self.L,self.U,self.t_matrix)
         self.printv(f'     JW Mapping')
         jw_mapper = JordanWignerMapper()
         jw_mapper = QubitConverter(jw_mapper)
-        self.Hubbard_PauliSum = jw_mapper.convert(Hubbard_operator)
+        self.Hubbard_PauliSum = jw_mapper.convert(Hubbard_operator_qiskit)
         self.printv(f'     Set matrix Hamiltonian')
-        self.Hubbard_matrix = Hubbard_operator.to_matrix() # <class 'scipy.sparse._csc.csc_matrix'>
+#        self.Hubbard_matrix = Hubbard_operator.to_matrix() # <class 'scipy.sparse._csc.csc_matrix'>
+        self.Hubbard_operator_pyhub_fock = fermi_hubbard(self.t_matrix,self.U)
+        self.Hubbard_operator_pyhub_fock.set_basis(self.mbbasis)
+        self.index,lst = [],list(range(4**self.nb_sites-1))
+        for elem in self.mbbasis.basis:
+            self.index.append(np.where(lst==elem)[0][0])
+#        self.Hubbard_operator_pyhub = self.Hubbard_operator_pyhub_fock[self.index]
         self.printv(f'Set SW operator')
         self.lbd_sw = np.einsum('ijk->kij',np.array([[\
             [self.t_matrix[p,q]/(self.t_matrix[q,q]-self.t_matrix[p,p]) if np.abs(self.t_matrix[p,p]-self.t_matrix[q,q]) else 0., \
-            self.t_matrix[p,q]/self.U_tensor[p,p,p,p], -self.t_matrix[p,q]/self.U_tensor[q,q,q,q], \
-                self.t_matrix[p,q]/((self.t_matrix[q,q]-self.t_matrix[p,p]) + (self.U_tensor[p,p,p,p]-self.U_tensor[q,q,q,q])) if np.abs(self.U_tensor[p,p,p,p]-self.U_tensor[q,q,q,q]) else 0.]\
+            self.t_matrix[p,q]/self.U[p], -self.t_matrix[p,q]/self.U[q], \
+                self.t_matrix[p,q]/((self.t_matrix[q,q]-self.t_matrix[p,p]) + (self.U[p]-self.U[q])) if np.abs(self.U[p]-self.U[q]) else 0.]\
                 for p in range(self.n_sites)] for q in range(self.n_sites)])\
         )
         SW_op = SW_operator(self.n_sites,self.lbd_sw)
         self.SW_PauliSum = jw_mapper.convert(SW_op)
         if theta=='exact':
-            self.theta = (self.U/4)*np.arctan(4/self.U)
+            self.theta = (np.average(self.U)/4)*np.arctan(4/np.average(self.U))
         elif isinstance(theta,float):
             self.theta = theta
         elif theta=='variationnal' or theta=='opt':
             self.printv(f'Classical optimization')
-            self.variationnal(opt_method=opt_method,bounds=True)
+            self.variationnal(**kwargs_opt)
         else:
             raise ValueError(f'Set correct value of theta, not {theta}')
 
         self.printv(f'Calculate Fermi-Hubbard ground-state from prepared intial circuit')
-        self.fermi_hubbard_gs = compute_statevector([self.theta],self.initial_circuit, self.SW_PauliSum,self.backend)[hspace]
+        self.fermi_hubbard_gs = compute_statevector([self.theta],self.initial_circuit, self.SW_PauliSum,self.backend)[self.index].real
         self.SW_PauliSum_theta = self.SW_PauliSum.mul(self.theta)
         self.total_circuit = self.initial_circuit.compose(CU_trotterized(self.SW_PauliSum_theta))
         self.printv(f'Calculate ground-state energy')
@@ -148,30 +168,7 @@ class SchriefferWolffQC():
             self.energy = np.array(self.energy)
             self.energy_avg = np.average(self.energy)
         else:
-            self.energy = evaluate_statevector([self.theta],self.initial_circuit, self.SW_PauliSum,self.Hubbard_matrix,self.backend)
-        #s2_matrix = Operator(s2_PauliSum).data
-        if solve_fermi_hubbard:
-            self.printv(f'Solve Fermi-Hubbard Hamiltonian')
-            self.printv(f'     Set matrix Hamiltonian in Hilbert space')
-            Hubbard_matrix_hspace = self.Hubbard_matrix[np.ix_(hspace, hspace)]
-            self.printv(f'     Diagonalize the matrix')
-            eigval_hspace,eigvec_hspace = self._diag(Hubbard_matrix_hspace)
-            if S2_subspace : 
-                self.printv(f'     Set matrix S2 in Hilbert space')
-                s2_op = s2_operator(self.n_qubits)
-                s2_matrix = s2_op.to_matrix()
-                s2_matrix_hspace=s2_matrix[np.ix_(hspace, hspace)]
-                self.eigval,self.eigvec = [],[]
-                self.printv(f'     Find eigenvectors in S2 subspace')
-                for i in range(len(eigval_hspace)):
-                    s2 = int(np.around(eigvec_hspace[:,i].conj() @ s2_matrix_hspace @ eigvec_hspace[:,i]).real)  
-                    if s2 == 0 :
-                        self.eigval.append(eigval_hspace[i].real)
-                        self.eigvec.append(eigvec_hspace[:,i])
-                if len(self.eigval)==0:
-                    raise ValueError(f'No solution founds in the S2 subspace')
-            else:
-                self.eigval,self.eigvec = eigval_hspace,eigvec_hspace.T
+            self.energy = evaluate_statevector([self.theta],self.initial_circuit, self.SW_PauliSum,self.Hubbard_operator_pyhub_fock,self.backend,index = self.index)
         self.time = pc() - t0
 
             
@@ -193,16 +190,17 @@ class SchriefferWolffQC():
 #        self.printv(fermionic_Heisenberg_GS_RVB_ansatz_site_ordered_qc.decompose())
         self.initial_circuit = fermionic_Heisenberg_GS_RVB_ansatz_site_ordered_qc
 
-    def variationnal(self,opt_method='SPSA',bounds=True):
-        if opt_method != "SPSA": 
+    def variationnal(self,bounds=True,method='L-BFGS-B'):
+        if method != "SPSA": 
             self.result = scipy.optimize.minimize(evaluate_statevector if not self.noisy else evaluate ,
                                                         x0=[(self.U/4)*np.arctan(4/self.U)],
                                                         args=(self.initial_circuit,
                                                             self.SW_PauliSum,
-                                                            self.Hubbard_matrix if not self.noisy else self.Hubbard_PauliSum,
+                                                            self.Hubbard_operator_pyhub_fock if not self.noisy else self.Hubbard_PauliSum,
                                                             self.backend,
-                                                            None if not self.noisy else self.nshots),
-                                                        method=opt_method,
+                                                            None if not self.noisy else self.nshots,
+                                                            self.index),
+                                                        method=method,
                                                         bounds=scipy.optimize.Bounds(np.full(self.order,0),np.full(self.order,1.)) if bounds else None ,
                                                         options={'ftol':1e-14,'gtol': 1e-09})
             self.theta = self.result.x[0]
@@ -213,9 +211,10 @@ class SchriefferWolffQC():
             cost_function = SPSA.wrap_function(evaluate_statevector if not self.noisy else evaluate,
                                                 (self.initial_circuit,
                                                 self.SW_PauliSum,
-                                                self.Hubbard_matrix if not self.noisy else self.Hubbard_PauliSum,
+                                                self.Hubbard_operator_pyhub_fock if not self.noisy else self.Hubbard_PauliSum,
                                                 self.backend,
-                                                None if not self.noisy else self.nshots))
+                                                None if not self.noisy else self.nshots,
+                                                self.index))
             self.result = spsa.minimize(cost_function, x0=[(self.U/4)*np.arctan(4/self.U)])
             self.theta = self.result.x[0]
             self.energy = self.result.fun # if last_avg is not 1, it returns the callable function with the last_avg param_values as input ! This seems generally good and better than taking the mean of the last_avg function calls.

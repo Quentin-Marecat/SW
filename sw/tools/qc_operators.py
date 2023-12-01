@@ -12,7 +12,7 @@ def Hubbard_1D_operator(n_sites,U,t_matrix):
     for i in range(n_sites):
       Hloc_op += FermionicOp(("N_{}".format(2*i),t_matrix[i,i]),register_length=n_qubits)
       Hloc_op += FermionicOp(("N_{}".format(2*i+1),t_matrix[i,i]),register_length=n_qubits)
-      Hloc_op += FermionicOp(("N_{} N_{}".format(2*i,2*i+1),U),register_length=n_qubits)
+      Hloc_op += FermionicOp(("N_{} N_{}".format(2*i,2*i+1),U[i]),register_length=n_qubits)
     for i in range(n_sites):
       for j in range(n_sites):
         V_op += FermionicOp(("+_{} -_{}".format(2*i,2*j),t_matrix[i,j]),register_length=n_qubits)

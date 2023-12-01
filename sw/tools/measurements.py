@@ -25,7 +25,7 @@ def count_ones_bitstring(n):
    return one_count
 
 
-def evaluate_statevector(theta,initial_circuit,SW_PauliSum,Hmatrix,backend,nshots=None):
+def evaluate_statevector(theta,initial_circuit,SW_PauliSum,H_ope,backend,nshots=None,index=None):
     '''
     This function returns the energy.
     Careful about the endian-ordering... For the moment, I only managed to make it work always with Hmatrix = Hfermion.to_matrix().A, and reverse ordering.
@@ -42,13 +42,16 @@ def evaluate_statevector(theta,initial_circuit,SW_PauliSum,Hmatrix,backend,nshot
     # Transpile for simulator
     total_circuit = transpile(total_circuit, backend)
     result = backend.run(total_circuit).result()
-    trotterized_state = result.get_statevector(total_circuit)
-    energy = (trotterized_state @ Hmatrix @ trotterized_state.conj()).real
+    trotterized_state = result.get_statevector(total_circuit).conj()
+    if isinstance(index,(list,np.ndarray)):
+      trotterized_state = trotterized_state[index]
+    energy = (H_ope.avg(trotterized_state)).real
+#    energy = (trotterized_state.conj() @ Hmatrix @ trotterized_state).real
 
     return energy
 
 
-def evaluate_SWiterative_statevector(circuit,SW_PauliSum_list,Hmatrix,backend):
+def evaluate_SWiterative_statevector(circuit,SW_PauliSum_list,H_ope,backend):
     '''
     This function returns the energy.
     Careful about the endian-ordering... For the moment, I only managed to make it work always with Hmatrix = Hfermion.to_matrix().A, and reverse ordering.
@@ -63,7 +66,8 @@ def evaluate_SWiterative_statevector(circuit,SW_PauliSum_list,Hmatrix,backend):
     circuit = transpile(circuit, backend)
     result = backend.run(circuit).result()
     trotterized_state = result.get_statevector(circuit)
-    energy = (trotterized_state @ Hmatrix @ trotterized_state.conj()).real
+    energy = (H_ope.avg(trotterized_state.conj())).real
+#    energy = (trotterized_state @ Hmatrix @ trotterized_state.conj()).real
 
     return energy
 

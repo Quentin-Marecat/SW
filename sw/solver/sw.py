@@ -73,7 +73,7 @@ class SchriefferWolff():
             else:
                 Hmatrix = self.Hbar
                 return np.einsum('ij,ij,ij->',Hmatrix,Hmatrix , V)
-        min = minimize(fun,x0=self.theta,method='L-BFGS-B',bounds=Bounds(np.full(self.order,0),np.full(self.order,1.)) if bounds else None )
+        min = minimize(fun,x0=self.theta,method=method,bounds=Bounds(np.full(self.order,0),np.full(self.order,1.)) if bounds else None )
         self.theta=min.x
 
 

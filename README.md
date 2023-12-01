@@ -24,6 +24,13 @@ Install the package using `pip` from the top-level directory
 python -m pip install . --user
 ```
 
+Add `sw` in your .bashrc
+
+```
+export PYTHONPATH="${PYTHONPATH}:/path/you/install/SW/"
+```
+
+
 Quickstart
 ----------
 
