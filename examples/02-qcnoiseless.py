@@ -3,16 +3,16 @@ from sw.solver.swqc import SchriefferWolffQC
 from sw.tools.tools import fidelity
 
 # Fermi-Hubbard model parameters
-Lx = 4        # Horizontal dimension of lattice
+Lx = 2        # Horizontal dimension of lattice
 Ly = 1        # Vertical dimension of lattice (Ly = 1 for chains, Ly = 2 for ladders)
 nb_sites  = Lx * Ly  # Total number of lattice sites
 t_matrix = np.diag(np.full(nb_sites-1,-1.),k=1) + np.diag(np.full(nb_sites-1,-1.),k=-1)
 if nb_sites > 2:
     t_matrix[0,-1] = t_matrix[-1,0] = 0.
 BC = 'OBC'
-U     = 10. # Hubbard parameter
+U     = 2. # Hubbard parameter
 opt_method = ['L-BFGS-B',"SLSQP","COBYLA","SPSA"][0]
-theta='opt'
+theta='exact'
 solve_fermi_hubbard = True
 S2_subspace = False
 mode = '1' 

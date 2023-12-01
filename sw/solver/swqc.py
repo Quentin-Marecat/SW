@@ -130,6 +130,8 @@ class SchriefferWolffQC():
 
         self.printv(f'Calculate Fermi-Hubbard ground-state from prepared intial circuit')
         self.fermi_hubbard_gs = compute_statevector([self.theta],self.initial_circuit, self.SW_PauliSum,self.backend)[hspace]
+        self.SW_PauliSum_theta = self.SW_PauliSum.mul(self.theta)
+        self.total_circuit = self.initial_circuit.compose(CU_trotterized(self.SW_PauliSum_theta))
         self.printv(f'Calculate ground-state energy')
         if self.noisy:
             self.SW_PauliSum_theta = self.SW_PauliSum.mul(self.theta)
@@ -235,7 +237,7 @@ class SchriefferWolffQC():
         if self.nb_sites<=6:
             return np.linalg.eigh(matrix.A)
         else:
-            return scipy.sparse.linalg.eigsh(matrix,wich='SA')
+            return scipy.sparse.linalg.eigsh(matrix,which='SA')
 
     @property
     def spin_bar(self):
