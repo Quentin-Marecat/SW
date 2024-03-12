@@ -111,10 +111,8 @@ class SchriefferWolffQC():
         self.printv(f'Set Fermi-Hubbard Hamiltonian')
         hspace = []
         for i in range(2**self.n_qubits):
-            if count_ones_bitstring(i) == self.L:
+            if count_ones_bitstring(i) == self.nb_elec:
                 hspace += [i]
-    #        hspace += [i]
-#        self.index = hspace
         self.printv(f'     Define Fermi-Hubbard operator')
         Hubbard_operator_qiskit = Hubbard_1D_operator(self.L,self.U,self.t_matrix)
         self.printv(f'     JW Mapping')
@@ -122,13 +120,22 @@ class SchriefferWolffQC():
         jw_mapper = QubitConverter(jw_mapper)
         self.Hubbard_PauliSum = jw_mapper.convert(Hubbard_operator_qiskit)
         self.printv(f'     Set matrix Hamiltonian')
-#        self.Hubbard_matrix = Hubbard_operator.to_matrix() # <class 'scipy.sparse._csc.csc_matrix'>
+        self.Hubbard_matrix = Hubbard_operator_qiskit.to_matrix().A # <class 'scipy.sparse._csc.csc_matrix'>
         self.Hubbard_operator_pyhub_fock = fermi_hubbard(self.t_matrix,self.U)
         self.Hubbard_operator_pyhub_fock.set_basis(self.mbbasis)
-        self.index,lst = [],list(range(4**self.nb_sites-1))
-        for elem in self.mbbasis.basis:
-            self.index.append(np.where(lst==elem)[0][0])
-#        self.Hubbard_operator_pyhub = self.Hubbard_operator_pyhub_fock[self.index]
+
+        # BRUNO: those 3 lines are correct but the index is not ordered in the same way as Qiskit wants.
+        #self.index,lst = [],list(range(4**self.nb_sites-1))
+        #for elem in self.mbbasis.basis:
+        #    self.index.append(np.where(lst==elem)[0][0])
+        # Qiskit works with a specific endian, which is different from the mbbasis written by Quentin.
+        # Hence, a more suited index is the following:
+        self.index = hspace
+        # and also, it is adapted to Hubbard_matrix, not to Hubbard_operator_pyhub_fock. Indeed, Hubbard_operator_pyhub_fock works with n_up and n_down fixed
+        # while the "count_ones_bitstring" doesn't consider any spin. It could be extended to n_up and n_down instead, but for now I didn't do it.
+        # To fix the issue, let us consider Hubbard_matrix instead in evaluate_statevector (see below).
+        self.Hubbard_matrix_hspace=np.array([[self.Hubbard_matrix[i,j] for i in self.index] for j in self.index])
+
         self.printv(f'Set SW operator')
         self.lbd_sw = np.einsum('ijk->kij',np.array([[\
             [self.t_matrix[p,q]/(self.t_matrix[q,q]-self.t_matrix[p,p]) if np.abs(self.t_matrix[p,p]-self.t_matrix[q,q]) else 0., \
@@ -168,7 +175,8 @@ class SchriefferWolffQC():
             self.energy = np.array(self.energy)
             self.energy_avg = np.average(self.energy)
         else:
-            self.energy = evaluate_statevector([self.theta],self.initial_circuit, self.SW_PauliSum,self.Hubbard_operator_pyhub_fock,self.backend,index = self.index)
+            #self.energy = evaluate_statevector([self.theta],self.initial_circuit, self.SW_PauliSum,self.Hubbard_operator_pyhub_fock,self.backend,index = self.index)
+            self.energy = evaluate_statevector([self.theta],self.initial_circuit, self.SW_PauliSum,self.Hubbard_matrix_hspace,self.backend,index = self.index)
         self.time = pc() - t0
 
             

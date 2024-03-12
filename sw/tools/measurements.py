@@ -29,6 +29,8 @@ def evaluate_statevector(theta,initial_circuit,SW_PauliSum,H_ope,backend,nshots=
     '''
     This function returns the energy.
     Careful about the endian-ordering... For the moment, I only managed to make it work always with Hmatrix = Hfermion.to_matrix().A, and reverse ordering.
+    Here, the noiseless simulation takes H_ope to be (if index not None) the matrix in the subspace we are interested in.
+    However, one should be careful about the ordering in this case.
     '''
 
     if isinstance(theta,(float,int,list,np.ndarray)):
@@ -45,8 +47,8 @@ def evaluate_statevector(theta,initial_circuit,SW_PauliSum,H_ope,backend,nshots=
     trotterized_state = result.get_statevector(total_circuit).conj()
     if isinstance(index,(list,np.ndarray)):
       trotterized_state = trotterized_state[index]
-    energy = (H_ope.avg(trotterized_state)).real
-#    energy = (trotterized_state.conj() @ Hmatrix @ trotterized_state).real
+    #energy = (H_ope.avg(trotterized_state)).real
+    energy = (trotterized_state.conj() @ H_ope @ trotterized_state).real
 
     return energy
 
