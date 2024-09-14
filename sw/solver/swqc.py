@@ -201,7 +201,7 @@ class SchriefferWolffQC():
     def variationnal(self,bounds=True,method='L-BFGS-B'):
         if method != "SPSA": 
             self.result = scipy.optimize.minimize(evaluate_statevector if not self.noisy else evaluate ,
-                                                        x0=[(self.U/4)*np.arctan(4/self.U)],
+                                                        x0=np.full(self.order,(np.average(self.U)/4)*np.arctan(4/np.average(self.U))),
                                                         args=(self.initial_circuit,
                                                             self.SW_PauliSum,
                                                             self.Hubbard_operator_pyhub_fock if not self.noisy else self.Hubbard_PauliSum,

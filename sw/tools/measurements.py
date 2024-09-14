@@ -73,7 +73,7 @@ def evaluate_SWiterative_statevector(circuit,SW_PauliSum_list,H_ope,backend):
 
     return energy
 
-def evaluate(theta,initial_circuit,SW_PauliSum,observable_PauliSum,backend,nshots):
+def evaluate(theta,initial_circuit,SW_PauliSum,observable_PauliSum,backend,nshots,index=None):
     '''
     This function returns the expectation value of the observable.
     '''

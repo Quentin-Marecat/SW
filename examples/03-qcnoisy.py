@@ -10,6 +10,8 @@ from scipy.stats import norm
 Lx = 4        # Horizontal dimension of lattice
 Ly = 1        # Vertical dimension of lattice (Ly = 1 for chains, Ly = 2 for ladders)
 nb_sites  = Lx * Ly  # Total number of lattice sites
+nup = ndown = nb_sites//2
+hilbert = (nup, ndown)
 t_matrix = np.diag(np.full(nb_sites-1,-1.),k=1) + np.diag(np.full(nb_sites-1,-1.),k=-1)
 if nb_sites > 2:
     t_matrix[0,-1] = t_matrix[-1,0] = 0.
@@ -25,8 +27,8 @@ noisy={'nshots':2**10,'prob_1':1.e-4,'prob_2':1.e-3,'n_eval':50}
 
 
 print(f'Noisy simulation : ')
-SWQC = SchriefferWolffQC(nb_sites,nb_sites,t_matrix,U,trial_state = None,verbose=False,Ly=Ly,noisy=noisy,BC=BC,mode=mode)
-SWQC.kernel(solve_fermi_hubbard=solve_fermi_hubbard,theta=theta,S2_subspace=S2_subspace)
+SWQC = SchriefferWolffQC(nb_sites,nup,ndown,t_matrix,U,trial_state = None,verbose=False,Ly=Ly,noisy=noisy,BC=BC,mode=mode)
+SWQC.kernel(theta=theta)
 print("%"*50+'\n')
 print(f'time : {np.around(SWQC.time,4)} s')
 print("Energies:")
