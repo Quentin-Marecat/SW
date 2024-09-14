@@ -12,7 +12,7 @@ t_matrix = np.diag(np.full(nb_sites-1,-1.),k=1) + np.diag(np.full(nb_sites-1,-1.
 t_matrix[0,-1] = t_matrix[-1,0] = -1.
 U     = 4. # Hubbard parameter
 opt_method = ['L-BFGS-B',"SLSQP","COBYLA","SPSA"][0]
-theta = [1.,'exact','opt'][1]
+theta = [1.,'exact','opt'][2]
 optimisation = {'method':opt_method,'bounds':True,'min_energy':True}
 
 
